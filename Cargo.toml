@@ -8,6 +8,13 @@ license = "MIT"
 [lib]
 crate-type = ["rlib", "cdylib"]
 
+[package]
+name = "agent" 
+version = "0.1.0"
+edition = "2021"
+That should be enough — Railpack will compile it and run ./bin/my-app.
+
+
 [features]
 default = []
 aomi-plugin = ["dep:aomi-sdk", "dep:schemars"]
