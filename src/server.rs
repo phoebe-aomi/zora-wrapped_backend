@@ -111,11 +111,11 @@ pub async fn run_from_env() -> Result<()> {
         .route("/graphql", post(graphql_handler))
         .route("/graphql/playground", get(graphql_playground))
         // REST
-        .route("/api/creator/{wallet}",             get(rest_creator_stats))
-        .route("/api/creator/{wallet}/volume",      get(rest_volume_data))
-        .route("/api/creator/{wallet}/top-buyers",  get(rest_top_buyers))
-        .route("/api/creator/{wallet}/collectors",  get(rest_collectors))
-        .route("/api/creator/{wallet}/collections", get(rest_collections))
+        .route("/api/creator/:wallet",             get(rest_creator_stats))
+        .route("/api/creator/:wallet/volume",      get(rest_volume_data))
+        .route("/api/creator/:wallet/top-buyers",  get(rest_top_buyers))
+        .route("/api/creator/:wallet/collectors",  get(rest_collectors))
+        .route("/api/creator/:wallet/collections", get(rest_collections))
         // Health
         .route("/health", get(|| async { "ok" }))
         .layer(cors)
