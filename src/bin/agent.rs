@@ -38,7 +38,7 @@ async fn main() {
         .allow_methods(Any)
         .allow_headers(Any);
 
-    let app = Router::new()
+    let app: Router<()> = Router::new()
         .route("/query", post(handle_query))
         .layer(cors);
 
