@@ -143,21 +143,21 @@ async fn graphql_playground() -> impl IntoResponse {
     ))
 }
 
-async fn rest_creator_stats(
+pub async fn rest_creator_stats(
     State(state): State<AppState>,
     Path(wallet): Path<String>,
 ) -> Result<Json<CreatorStats>, ApiError> {
     Ok(Json(state.frontend.creator_stats(wallet).await?))
 }
 
-async fn rest_volume_data(
+pub async fn rest_volume_data(
     State(state): State<AppState>,
     Path(wallet): Path<String>,
 ) -> Result<Json<Vec<VolumePoint>>, ApiError> {
     Ok(Json(state.frontend.volume_data(wallet).await?))
 }
 
-async fn rest_top_buyers(
+pub async fn rest_top_buyers(
     State(state): State<AppState>,
     Path(wallet): Path<String>,
     Query(query): Query<LimitQuery>,
@@ -170,7 +170,7 @@ async fn rest_top_buyers(
     ))
 }
 
-async fn rest_collectors(
+pub async fn rest_collectors(
     State(state): State<AppState>,
     Path(wallet): Path<String>,
     Query(query): Query<LimitQuery>,
@@ -183,7 +183,7 @@ async fn rest_collectors(
     ))
 }
 
-async fn rest_collections(
+pub async fn rest_collections(
     State(state): State<AppState>,
     Path(wallet): Path<String>,
     Query(query): Query<LimitQuery>,
