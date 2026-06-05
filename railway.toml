@@ -1,2 +1,2 @@
 [deploy]
-startCommand = "./bin/agent"
+startCommand = "./bin/agent serve"
