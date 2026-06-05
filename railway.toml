@@ -1,2 +1,2 @@
 [deploy]
-startCommand = "./zora-aomi-tools"
+startCommand = "./bin/agent"
