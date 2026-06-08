@@ -16,3 +16,4 @@ zora.ts
 .env.example
 test.sh
 test_endpoints.sh
+target/

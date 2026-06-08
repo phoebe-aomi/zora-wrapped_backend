@@ -8,7 +8,8 @@ use axum::{
     Json, Router,
 };
 use axum::http::Method;
-use serde::Deserialize;
+use crate::agent::{execute_intent, parse_user_input};
+use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -25,6 +26,18 @@ pub type AppSchema = Schema<QueryRoot, EmptyMutation, EmptySubscription>;
 pub struct AppState {
     schema: AppSchema,
     frontend: FrontendService,
+}
+
+impl AppState {
+    pub fn from_env() -> Result<Self> {
+        dotenvy::dotenv().ok();
+        let client = load_client_from_env()?;
+        let frontend = FrontendService::new(client);
+        let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription)
+            .data(frontend.clone())
+            .finish();
+        Ok(Self { schema, frontend })
+    }
 }
 
 pub struct QueryRoot;
@@ -86,6 +99,40 @@ pub struct LimitQuery {
     count: Option<u32>,
 }
 
+#[derive(Deserialize)]
+struct QueryRequest {
+    query: String,
+}
+
+#[derive(Serialize)]
+struct QueryResponse {
+    result: String,
+    // lines: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
+}
+
+async fn handle_query(Json(req): Json<QueryRequest>) -> Json<QueryResponse> {
+    match parse_user_input(&req.query) {
+        Some(intent) => match execute_intent(&intent).await {
+            Ok(result) => {
+                // let lines: Vec<String> = result.split('\n').map(String::from).collect();
+                Json(QueryResponse { result, error: None })
+            }
+            Err(e) => Json(QueryResponse {
+                result: String::new(),
+                // lines: vec![],
+                error: Some(e),
+            }),
+        },
+        None => Json(QueryResponse {
+            result: String::new(),
+            // lines: vec![],
+            error: Some("Could not understand query. Try: 'How many holders in 0x...'".to_string()),
+        }),
+    }
+}
+
 pub async fn run_from_env() -> Result<()> {
     dotenvy::dotenv().ok();
     let port = std::env::var("PORT")
@@ -107,19 +154,17 @@ pub async fn run_from_env() -> Result<()> {
         .allow_headers(Any);
 
     let app = Router::new()
-        // GraphQL
-        .route("/graphql", post(graphql_handler))
-        .route("/graphql/playground", get(graphql_playground))
-        // REST
-        .route("/api/creator/:wallet",             get(rest_creator_stats))
-        .route("/api/creator/:wallet/volume",      get(rest_volume_data))
-        .route("/api/creator/:wallet/top-buyers",  get(rest_top_buyers))
-        .route("/api/creator/:wallet/collectors",  get(rest_collectors))
-        .route("/api/creator/:wallet/collections", get(rest_collections))
-        // Health
-        .route("/health", get(|| async { "ok" }))
-        .layer(cors)
-        .with_state(state);
+    .route("/query", post(handle_query))        // ← added
+    .route("/graphql", post(graphql_handler))   // ← keep only one
+    .route("/graphql/playground", get(graphql_playground))
+    .route("/api/creator/{wallet}",             get(rest_creator_stats))
+    .route("/api/creator/{wallet}/volume",      get(rest_volume_data))
+    .route("/api/creator/{wallet}/top-buyers",  get(rest_top_buyers))
+    .route("/api/creator/{wallet}/collectors",  get(rest_collectors))
+    .route("/api/creator/{wallet}/collections", get(rest_collections))
+    .route("/health", get(|| async { "ok" }))
+    .layer(cors)
+    .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     println!("zora-aomi-tools server listening on http://{addr}");
