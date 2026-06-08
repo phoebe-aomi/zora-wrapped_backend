@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Typed Rust tools for exposing Zora coin market data to agent runtimes."
 license = "MIT"
+default-run = "agent"
 
 [lib]
 crate-type = ["rlib", "cdylib"]

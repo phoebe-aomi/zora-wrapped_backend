@@ -1,9 +1,9 @@
+pub mod agent;
 #[cfg(feature = "aomi-plugin")]
 pub mod aomi;
 #[cfg(feature = "aomi-plugin")]
 mod aomi_tests;
 pub mod client;
-pub mod agent;
 pub mod frontend;
 pub mod runtime;
 pub mod server;

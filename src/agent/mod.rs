@@ -2,7 +2,6 @@ pub mod monitor;
 pub mod nlp;
 
 pub use monitor::{
-    CoinMonitor, CoinWatch, MonitorConfig, MonitorEvent,
-    Notifier, StdoutNotifier, WebhookNotifier,
+    CoinMonitor, CoinWatch, MonitorConfig, MonitorEvent, Notifier, StdoutNotifier, WebhookNotifier,
 };
-pub use nlp::{parse_user_input, execute_intent, IntentType, ParsedIntent};
+pub use nlp::{execute_intent, parse_user_input, IntentType, ParsedIntent};

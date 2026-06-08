@@ -142,6 +142,10 @@
     padding: 16px; overflow-x: auto; max-height: 520px; overflow-y: auto;
     white-space: pre-wrap; word-break: break-word;
   }
+  .agent-result {
+    padding: 16px; border-bottom: 1px solid var(--border);
+    white-space: pre-wrap; line-height: 1.7;
+  }
   .empty-state {
     text-align: center; padding: 48px 16px; color: var(--muted);
   }
@@ -190,6 +194,11 @@
     </button>
     <button class="endpoint-btn" data-id="collections" onclick="select('collections')">
       <span class="method-badge GET">GET</span>collections
+    </button>
+
+    <div class="section-label">Agent</div>
+    <button class="endpoint-btn" data-id="nlp_query" onclick="select('nlp_query')">
+      <span class="method-badge POST">POST</span>/query
     </button>
 
     <div class="section-label">GraphQL</div>
@@ -267,6 +276,21 @@ const ENDPOINTS = {
     params: [
       { id: "wallet", label: "Wallet address", placeholder: "0x…", default: "" },
       { id: "count",  label: "count",          placeholder: "20", default: "20" },
+    ],
+  },
+  nlp_query: {
+    label: "Agent Query",
+    desc: "Ask a plain-English question about a Zora coin.",
+    method: "POST",
+    path: () => "/query",
+    body: (p) => ({ query: p.query }),
+    params: [
+      {
+        id: "query",
+        label: "Query",
+        placeholder: "Show top 5 buyers of 0x...",
+        default: "Show top 5 buyers of 0xF5735B760e2194521377A24a5c1e830aFa83aCDB",
+      },
     ],
   },
   gql_creator: {
@@ -399,6 +423,7 @@ async function run() {
     headers: { "Content-Type": "application/json" },
   };
   if (isGql) opts.body = JSON.stringify(ep.gql(params));
+  if (ep.body) opts.body = JSON.stringify(ep.body(params));
 
   const t0 = performance.now();
   let status = 0, body = "";
@@ -418,7 +443,15 @@ async function run() {
   spinner.style.display = "none";
 
   let pretty = body;
-  try { pretty = JSON.stringify(JSON.parse(body), null, 2); } catch {}
+  let parsed = null;
+  try {
+    parsed = JSON.parse(body);
+    pretty = JSON.stringify(parsed, null, 2);
+  } catch {}
+
+  const agentResult = parsed && typeof parsed.result === "string" && parsed.result
+    ? `<div class="agent-result">${escapeHtml(parsed.result)}</div>`
+    : "";
 
   const cls = status === 0 ? "" : status < 300 ? "status-2xx" : status < 500 ? "status-4xx" : "status-5xx";
   const label = status === 0 ? "Network Error" : `HTTP ${status}`;
@@ -430,6 +463,7 @@ async function run() {
         <span class="timing">${elapsed} ms — ${url}</span>
         <button class="copy-btn" onclick="copy(this)">Copy</button>
       </div>
+      ${agentResult}
       <pre id="json-out">${colorize(pretty)}</pre>
     </div>
   `;
@@ -444,8 +478,7 @@ function copy(btn) {
 }
 
 function colorize(json) {
-  return json
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  return escapeHtml(json)
     .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*")(\s*:)?/g, (m, s, _e, colon) => {
       if (colon) return `<span class="jk">${s}</span>:`;
       return `<span class="js">${s}</span>`;
@@ -453,6 +486,13 @@ function colorize(json) {
     .replace(/\b(-?\d+\.?\d*([eE][+-]?\d+)?)\b/g, '<span class="jn">$1</span>')
     .replace(/\b(true|false)\b/g, '<span class="jb">$1</span>')
     .replace(/\bnull\b/g, '<span class="jnull">null</span>');
+}
+
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 // Ping the server every 4s

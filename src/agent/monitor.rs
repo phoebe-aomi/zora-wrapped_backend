@@ -35,21 +35,21 @@ pub struct MonitorConfig {
 
 pub enum MonitorEvent {
     NewHolders {
-        coin_name:     String,
-        coin_address:  String,
+        coin_name: String,
+        coin_address: String,
         total_holders: u64,
-        new_holders:   u64,
+        new_holders: u64,
     },
     VolumeSpike {
-        coin_name:    String,
+        coin_name: String,
         coin_address: String,
-        volume_24h:   f64,
-        pct_change:   f64,
+        volume_24h: f64,
+        pct_change: f64,
     },
     NewTopBuyer {
-        coin_name:    String,
+        coin_name: String,
         coin_address: String,
-        wallet:       String,
+        wallet: String,
     },
 }
 
@@ -57,7 +57,12 @@ impl MonitorEvent {
     /// "Daily Wrapped"-style one-liner for notifications.
     pub fn to_ping(&self) -> String {
         match self {
-            MonitorEvent::NewHolders { coin_name, new_holders, total_holders, .. } => {
+            MonitorEvent::NewHolders {
+                coin_name,
+                new_holders,
+                total_holders,
+                ..
+            } => {
                 format!(
                     "📈 {} — {} new holder{} today (total: {})",
                     coin_name,
@@ -66,13 +71,20 @@ impl MonitorEvent {
                     total_holders,
                 )
             }
-            MonitorEvent::VolumeSpike { coin_name, volume_24h, pct_change, .. } => {
+            MonitorEvent::VolumeSpike {
+                coin_name,
+                volume_24h,
+                pct_change,
+                ..
+            } => {
                 format!(
                     "🔥 {} — volume spike +{:.0}% (24h: {:.4} ETH)",
                     coin_name, pct_change, volume_24h,
                 )
             }
-            MonitorEvent::NewTopBuyer { coin_name, wallet, .. } => {
+            MonitorEvent::NewTopBuyer {
+                coin_name, wallet, ..
+            } => {
                 let short = if wallet.len() >= 10 {
                     format!("{}…{}", &wallet[..6], &wallet[wallet.len() - 4..])
                 } else {
@@ -138,27 +150,23 @@ impl Notifier for WebhookNotifier {
 #[derive(Clone, Default)]
 struct CoinSnapshot {
     holder_count: u64,
-    volume_24h:   f64,
-    top_buyer:    Option<String>,
+    volume_24h: f64,
+    top_buyer: Option<String>,
     /// False on first poll — avoids false-positive triggers on startup.
-    initialized:  bool,
+    initialized: bool,
 }
 
 // ── Monitor ───────────────────────────────────────────────────────────────────
 
 pub struct CoinMonitor {
-    client:    ZoraClient,
-    config:    MonitorConfig,
+    client: ZoraClient,
+    config: MonitorConfig,
     snapshots: HashMap<String, CoinSnapshot>,
-    notifier:  Box<dyn Notifier>,
+    notifier: Box<dyn Notifier>,
 }
 
 impl CoinMonitor {
-    pub fn new(
-        client:   ZoraClient,
-        config:   MonitorConfig,
-        notifier: Box<dyn Notifier>,
-    ) -> Self {
+    pub fn new(client: ZoraClient, config: MonitorConfig, notifier: Box<dyn Notifier>) -> Self {
         Self {
             client,
             config,
@@ -169,17 +177,16 @@ impl CoinMonitor {
 
     /// Reads `MONITOR_WEBHOOK_URL` from env; falls back to stdout if unset.
     pub fn from_env(client: ZoraClient, config: MonitorConfig) -> Self {
-        let notifier: Box<dyn Notifier> =
-            match std::env::var("MONITOR_WEBHOOK_URL") {
-                Ok(url) => {
-                    println!("🔔 Webhook notifier → {url}");
-                    Box::new(WebhookNotifier::new(url))
-                }
-                Err(_) => {
-                    println!("🔔 Stdout notifier (set MONITOR_WEBHOOK_URL to forward pings)");
-                    Box::new(StdoutNotifier)
-                }
-            };
+        let notifier: Box<dyn Notifier> = match std::env::var("MONITOR_WEBHOOK_URL") {
+            Ok(url) => {
+                println!("🔔 Webhook notifier → {url}");
+                Box::new(WebhookNotifier::new(url))
+            }
+            Err(_) => {
+                println!("🔔 Stdout notifier (set MONITOR_WEBHOOK_URL to forward pings)");
+                Box::new(StdoutNotifier)
+            }
+        };
         Self::new(client, config, notifier)
     }
 
@@ -214,7 +221,7 @@ impl CoinMonitor {
     async fn poll_coin(&mut self, watch: &CoinWatch) -> Result<()> {
         let coin_input = CoinInput {
             address: watch.address.clone(),
-            chain:   watch.chain,
+            chain: watch.chain,
         };
 
         // Fetch all three data points concurrently
@@ -224,22 +231,23 @@ impl CoinMonitor {
             tools::get_top_buyers(
                 TopBuyersInput {
                     address: watch.address.clone(),
-                    chain:   watch.chain,
-                    top_n:   1,
+                    chain: watch.chain,
+                    top_n: 1,
                 },
                 &self.client,
             ),
         );
 
-        let holders    = holders_res?;
-        let volume     = volume_res?;
-        let buyers     = buyers_res?;
+        let holders = holders_res?;
+        let volume = volume_res?;
+        let buyers = buyers_res?;
 
-        let curr_holders   = holders.unique_holders;
+        let curr_holders = holders.unique_holders;
         let curr_volume: f64 = volume.volume_24h.parse().unwrap_or(0.0);
         let curr_top_buyer = buyers.first().map(|b| b.address.clone());
 
-        let prev = self.snapshots
+        let prev = self
+            .snapshots
             .entry(watch.address.clone())
             .or_default()
             .clone();
@@ -250,10 +258,10 @@ impl CoinMonitor {
             if delta >= watch.holder_delta_threshold {
                 self.notifier
                     .notify(&MonitorEvent::NewHolders {
-                        coin_name:     watch.name.clone(),
-                        coin_address:  watch.address.clone(),
+                        coin_name: watch.name.clone(),
+                        coin_address: watch.address.clone(),
                         total_holders: curr_holders,
-                        new_holders:   delta,
+                        new_holders: delta,
                     })
                     .await?;
             }
@@ -264,10 +272,10 @@ impl CoinMonitor {
                 if pct >= watch.volume_spike_pct {
                     self.notifier
                         .notify(&MonitorEvent::VolumeSpike {
-                            coin_name:    watch.name.clone(),
+                            coin_name: watch.name.clone(),
                             coin_address: watch.address.clone(),
-                            volume_24h:   curr_volume,
-                            pct_change:   pct,
+                            volume_24h: curr_volume,
+                            pct_change: pct,
                         })
                         .await?;
                 }
@@ -278,9 +286,9 @@ impl CoinMonitor {
                 if prev.top_buyer.as_deref() != Some(buyer.as_str()) {
                     self.notifier
                         .notify(&MonitorEvent::NewTopBuyer {
-                            coin_name:    watch.name.clone(),
+                            coin_name: watch.name.clone(),
                             coin_address: watch.address.clone(),
-                            wallet:       buyer.clone(),
+                            wallet: buyer.clone(),
                         })
                         .await?;
                 }
@@ -292,9 +300,9 @@ impl CoinMonitor {
             watch.address.clone(),
             CoinSnapshot {
                 holder_count: curr_holders,
-                volume_24h:   curr_volume,
-                top_buyer:    curr_top_buyer,
-                initialized:  true,
+                volume_24h: curr_volume,
+                top_buyer: curr_top_buyer,
+                initialized: true,
             },
         );
 

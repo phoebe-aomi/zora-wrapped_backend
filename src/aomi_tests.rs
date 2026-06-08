@@ -228,7 +228,7 @@ fn tool_context_is_integration_point() {
     // DynToolCallCtx is passed by Aomi host at runtime
     // This test documents that tools accept the context parameter
     // Actual context validation happens at runtime in Aomi host
-    
+
     // Tools are defined with DynToolCallCtx parameter:
     // fn run(_app: &App, args: Args, _ctx: DynToolCallCtx)
     // This validates the signature is correct

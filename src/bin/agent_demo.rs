@@ -4,15 +4,14 @@
 
 use std::env;
 use zora_aomi_tools::{
-    load_client_from_env,
-    tools,
+    load_client_from_env, tools,
     types::{CoinInput, TopBuyersInput},
 };
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
-    
+
     if args.len() < 2 {
         eprintln!("Usage: agent_demo <coin_address>");
         eprintln!("Example: agent_demo 0xF5735B760e2194521377A24a5c1e830aFa83aCDB");
@@ -74,7 +73,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("✓");
             analysis.push_str("- Top Buyers:\n");
             for buyer in buyers.iter().take(3) {
-                analysis.push_str(&format!("  #{}: {} bought {}\n", buyer.rank, buyer.address, buyer.total_bought));
+                analysis.push_str(&format!(
+                    "  #{}: {} bought {}\n",
+                    buyer.rank, buyer.address, buyer.total_bought
+                ));
             }
         }
         Err(e) => println!("✗ Error: {}", e),

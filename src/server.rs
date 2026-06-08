@@ -1,14 +1,14 @@
+use crate::agent::{execute_intent, parse_user_input};
 use anyhow::Result;
 use async_graphql::{Context, EmptyMutation, EmptySubscription, Object, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
+use axum::http::Method;
 use axum::{
     extract::{Path, Query, State},
     response::IntoResponse,
     routing::{get, post},
     Json, Router,
 };
-use axum::http::Method;
-use crate::agent::{execute_intent, parse_user_input};
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
@@ -107,7 +107,7 @@ struct QueryRequest {
 #[derive(Serialize)]
 struct QueryResponse {
     result: String,
-    // lines: Vec<String>,
+    lines: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     error: Option<String>,
 }
@@ -116,20 +116,33 @@ async fn handle_query(Json(req): Json<QueryRequest>) -> Json<QueryResponse> {
     match parse_user_input(&req.query) {
         Some(intent) => match execute_intent(&intent).await {
             Ok(result) => {
-                // let lines: Vec<String> = result.split('\n').map(String::from).collect();
-                Json(QueryResponse { result, error: None })
+                let result = normalize_newlines(result);
+                let lines = result.lines().map(String::from).collect();
+                Json(QueryResponse {
+                    result,
+                    lines,
+                    error: None,
+                })
             }
             Err(e) => Json(QueryResponse {
                 result: String::new(),
-                // lines: vec![],
+                lines: vec![],
                 error: Some(e),
             }),
         },
         None => Json(QueryResponse {
             result: String::new(),
-            // lines: vec![],
+            lines: vec![],
             error: Some("Could not understand query. Try: 'How many holders in 0x...'".to_string()),
         }),
+    }
+}
+
+fn normalize_newlines(result: String) -> String {
+    if result.contains('\n') {
+        result
+    } else {
+        result.replace("\\n", "\n")
     }
 }
 
@@ -154,17 +167,17 @@ pub async fn run_from_env() -> Result<()> {
         .allow_headers(Any);
 
     let app = Router::new()
-    .route("/query", post(handle_query))        // ← added
-    .route("/graphql", post(graphql_handler))   // ← keep only one
-    .route("/graphql/playground", get(graphql_playground))
-    .route("/api/creator/{wallet}",             get(rest_creator_stats))
-    .route("/api/creator/{wallet}/volume",      get(rest_volume_data))
-    .route("/api/creator/{wallet}/top-buyers",  get(rest_top_buyers))
-    .route("/api/creator/{wallet}/collectors",  get(rest_collectors))
-    .route("/api/creator/{wallet}/collections", get(rest_collections))
-    .route("/health", get(|| async { "ok" }))
-    .layer(cors)
-    .with_state(state);
+        .route("/query", post(handle_query)) // ← added
+        .route("/graphql", post(graphql_handler)) // ← keep only one
+        .route("/graphql/playground", get(graphql_playground))
+        .route("/api/creator/{wallet}", get(rest_creator_stats))
+        .route("/api/creator/{wallet}/volume", get(rest_volume_data))
+        .route("/api/creator/{wallet}/top-buyers", get(rest_top_buyers))
+        .route("/api/creator/{wallet}/collectors", get(rest_collectors))
+        .route("/api/creator/{wallet}/collections", get(rest_collections))
+        .route("/health", get(|| async { "ok" }))
+        .layer(cors)
+        .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     println!("zora-aomi-tools server listening on http://{addr}");
