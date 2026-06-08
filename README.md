@@ -61,11 +61,20 @@ cargo run --bin agent
 
 The server runs on `http://localhost:3001` by default.
 
+Deployed backend URL:
+
+```text
+https://zora-wrapped-back.onrender.com
+```
+
+Use the deployed URL for production/frontend requests, and `http://localhost:3001` when running the backend locally.
+
 ### NLP Agent
 
 Natural language queries are accepted at:
 
 ```text
+POST https://zora-wrapped-back.onrender.com/query
 POST http://localhost:3001/query
 ```
 
@@ -104,6 +113,7 @@ Wallet addresses (`0x` + 40 hex chars) and ENS names (e.g. `vitalik.eth`) are bo
 ### GraphQL
 
 ```text
+POST https://zora-wrapped-back.onrender.com/graphql
 POST http://localhost:3001/graphql
 ```
 
@@ -154,9 +164,9 @@ query CreatorDashboard($wallet: String!) {
 The server also exposes REST compatibility routes for the current frontend hooks:
 
 ```text
-GET /api/creator/:wallet
-GET /api/creator/:wallet/volume
-GET /api/creator/:wallet/top-buyers?top_n=5
-GET /api/creator/:wallet/collectors?count=10
-GET /api/creator/:wallet/collections?count=20
+GET https://zora-wrapped-back.onrender.com/api/creator/:wallet
+GET https://zora-wrapped-back.onrender.com/api/creator/:wallet/volume
+GET https://zora-wrapped-back.onrender.com/api/creator/:wallet/top-buyers?top_n=5
+GET https://zora-wrapped-back.onrender.com/api/creator/:wallet/collectors?count=10
+GET https://zora-wrapped-back.onrender.com/api/creator/:wallet/collections?count=20
 ```
