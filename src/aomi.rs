@@ -1,4 +1,4 @@
-use aomi_sdk::{DynAomiTool, DynToolCallCtx};
+use aomi_sdk::{DynAomiTool, DynToolCallCtx, Secret};
 use serde_json::Value;
 
 use crate::{
@@ -13,6 +13,12 @@ pub struct GetHolderCountTool;
 pub struct Get24hVolumeTool;
 pub struct GetTopBuyersTool;
 pub struct MessageRecentBuyerTool;
+
+const SECRET_ZORA_API_KEY: Secret = Secret::new(
+    "ZORA_API_KEY",
+    "Zora API key for api-sdk.zora.engineering market data requests.",
+    true,
+);
 
 impl DynAomiTool for GetHolderCountTool {
     type App = ZoraAomiApp;
@@ -142,5 +148,6 @@ aomi_sdk::dyn_aomi_app!(
         GetTopBuyersTool,
         MessageRecentBuyerTool
     ],
+    secrets = [SECRET_ZORA_API_KEY],
     namespaces = ["evm-core"],
 );
